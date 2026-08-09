@@ -3991,7 +3991,7 @@ define Device/ikuai_q3000
   DEVICE_VENDOR := iKuai
   DEVICE_MODEL := IK-Q3000
   DEVICE_DTS := mt7981b-ikuai-q3000
-  DEVICE_DTS_DIR := $(DTS_DIR)/mediatek
+  DEVICE_DTS_DIR := $(DTS_DIR)
   SUPPORTED_DEVICES := ikuai,q3000
   UBINIZE_OPTS := -E 5
   BLOCKSIZE := 128k
