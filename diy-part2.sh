@@ -18,3 +18,6 @@
 
 # Modify hostname
 #sed -i 's/OpenWrt/P3TERX-Router/g' package/base-files/files/bin/config_generate
+# 强行注入 Q3000 的 DTS 图纸和配置文件
+cp -f $GITHUB_WORKSPACE/mt7981b-ikuai-q3000.dts target/linux/mediatek/dts/mt7981b-ikuai-q3000.dts
+cp -f $GITHUB_WORKSPACE/filogic.mk target/linux/mediatek/image/filogic.mk
