@@ -8,24 +8,24 @@
 #include "mt7981b.dtsi"
 
 / {
-	model = "iKuai IK-Q3000";
-	compatible = "ikuai,q3000", "mediatek,mt7981b";
+	model = "iKuai Q3000";
+	compatible = "ikuai,q3000", "mediatek,mt7981";
 
 	aliases {
+		led-boot = &red_led;
+		led-failsafe = &red_led;
+		led-running = &green_led;
+		led-upgrade = &blue_led;
 		serial0 = &uart0;
-		label-mac-device = &gmac0;
-		led-boot = &led_status_red;
-		led-failsafe = &led_status_red;
-		led-running = &led_status_green;
-		led-upgrade = &led_status_green;
 	};
 
 	chosen {
-		bootargs-append = " root=/dev/fit0 rootwait";
+		bootargs = "root=/dev/fit0 rootwait";
 		rootdisk = <&ubi_rootdisk>;
 		stdout-path = "serial0:115200n8";
 	};
 
+	/* 完美适配 512M 超大内存 (0x20000000 即 512M) */
 	memory@40000000 {
 		reg = <0 0x40000000 0 0x20000000>;
 		device_type = "memory";
@@ -50,21 +50,18 @@
 	gpio-leds {
 		compatible = "gpio-leds";
 
-		led_status_green: green {
-			function = LED_FUNCTION_STATUS;
-			color = <LED_COLOR_ID_GREEN>;
-			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
-		};
-
-		led_status_red: red {
-			function = LED_FUNCTION_STATUS;
-			color = <LED_COLOR_ID_RED>;
+		red_led: led-0 {
+			label = "q3000:red";
 			gpios = <&pio 10 GPIO_ACTIVE_LOW>;
 		};
 
-		led_status_blue: blue {
-			function = LED_FUNCTION_STATUS;
-			color = <LED_COLOR_ID_BLUE>;
+		green_led: led-1 {
+			label = "q3000:green";
+			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
+		};
+
+		blue_led: led-2 {
+			label = "q3000:blue";
 			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -98,67 +95,12 @@
 	};
 };
 
-&spi0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&spi0_flash_pins>;
-	status = "okay";
-
-	spi_nand: flash@0 {
-		compatible = "spi-nand";
-		reg = <0>;
-		spi-max-frequency = <52000000>;
-		spi-tx-bus-width = <4>;
-		spi-rx-bus-width = <4>;
-
-		partitions {
-			compatible = "fixed-partitions";
-			#address-cells = <1>;
-			#size-cells = <1>;
-
-			partition@0 {
-				label = "bl2";
-				reg = <0x00000 0x100000>;
-				read-only;
-			};
-
-			partition@100000 {
-				label = "u-boot-env";
-				reg = <0x100000 0x80000>;
-			};
-
-			factory: partition@180000 {
-				label = "Factory";
-				reg = <0x180000 0x200000>;
-				read-only;
-			};
-
-			partition@380000 {
-				label = "fip";
-				reg = <0x380000 0x200000>;
-				read-only;
-			};
-
-			ubi: partition@580000 {
-				label = "ubi";
-				reg = <0x580000 0x7a80000>;
-				compatible = "linux,ubi";
-
-				volumes {
-					ubi_rootdisk: ubi-volume-fit {
-						volname = "fit";
-					};
-				};
-			};
-		};
-	};
-};
-
 &switch {
 	ports {
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		/* LAN3 与 LAN1 已在此处完美对调 */
+		/* 已经根据你的要求，将 LAN3 和 LAN1 完美对调 */
 		port@0 {
 			reg = <0>;
 			label = "lan3";
@@ -209,7 +151,75 @@
 		conf-pd {
 			pins = "SPI0_CLK", "SPI0_MOSI", "SPI0_MISO";
 			drive-strength = <MTK_DRIVE_8mA>;
-			bias-disable;
+			bias-disable; 
+		};
+	};
+};
+
+&spi0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi0_flash_pins>;
+	status = "okay";
+
+	spi_nand: flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+
+		spi-max-frequency = <52000000>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "bl2";
+				reg = <0x0 0x100000>;
+				read-only;
+			};
+
+			partition@100000 {
+				label = "u-boot-env";
+				reg = <0x100000 0x80000>;
+			};
+
+			/* 完美合并原本的 2MB Factory 分区，并融入 6.12 专属 NVMEM 提取语法 */
+			partition@180000 {
+				label = "factory";
+				reg = <0x180000 0x200000>;
+				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					eeprom_factory_0: eeprom@0 {
+						reg = <0x0 0x1000>;
+					};
+				};
+			};
+
+			partition@380000 {
+				label = "fip";
+				reg = <0x380000 0x200000>;
+				read-only;
+			};
+
+			/* 完美适配 128M NAND 的尾部分区剩余容量 */
+			partition@580000 {
+				compatible = "linux,ubi";
+				label = "ubi";
+				reg = <0x580000 0x7a80000>;
+
+				volumes {
+					ubi_rootdisk: ubi-volume-fit {
+						volname = "fit";
+					};
+				};
+			};
 		};
 	};
 };
@@ -223,6 +233,7 @@
 };
 
 &wifi {
+	nvmem-cells = <&eeprom_factory_0>;
+	nvmem-cell-names = "eeprom";
 	status = "okay";
-	mediatek,mtd-eeprom = <&factory 0x0>;
 };
