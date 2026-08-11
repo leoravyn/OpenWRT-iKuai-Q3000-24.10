@@ -5,16 +5,10 @@
 # Description: OpenWrt DIY script part 2 (After Update feeds)
 #
 
-# 1. 智能查找 24.10 的 DTS 目录并拷贝文件
-DTS_TARGET_DIR=$(find target/linux/mediatek -type d -path "*/arch/arm64/boot/dts/mediatek" | head -n 1)
-if [ -z "$DTS_TARGET_DIR" ]; then
-    DTS_TARGET_DIR="target/linux/mediatek/dts"
-    mkdir -p "$DTS_TARGET_DIR"
-fi
-cp -f $GITHUB_WORKSPACE/mt7981b-ikuai-q3000.dts "$DTS_TARGET_DIR/"
+# 1. 简单粗暴，直接强行把你的专属 DTS 拷贝到官方指定的唯一目录
+cp -f $GITHUB_WORKSPACE/mt7981b-ikuai-q3000.dts target/linux/mediatek/dts/
 
-# 2. 动态向云端的 filogic.mk 写入 Q3000 硬件定义 (安全追加模式，不破坏原有文件)
-# 注意：补充了 DEVICE_PACKAGES 确保 Wi-Fi 驱动被正确打包进去！
+# 2. 动态向云端的 filogic.mk 写入 Q3000 硬件定义 (安全追加模式)
 cat >> target/linux/mediatek/image/filogic.mk <<'EOF'
 
 define Device/ikuai_q3000
