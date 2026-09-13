@@ -1,15 +1,26 @@
 #!/bin/bash
+set -euo pipefail
 #
 # https://github.com/P3TERX/Actions-OpenWrt
 # File name: diy-part2.sh
 # Description: OpenWrt DIY script part 2 (After Update feeds)
 #
 
-# 1. 简单粗暴，直接强行把你的专属 DTS 拷贝到官方指定的唯一目录
-cp -f $GITHUB_WORKSPACE/mt7981b-ikuai-q3000.dts target/linux/mediatek/dts/
+custom_dts="$GITHUB_WORKSPACE/mt7981b-ikuai-q3000.dts"
+image_makefile="target/linux/mediatek/image/filogic.mk"
 
-# 2. 动态向云端的 filogic.mk 写入 Q3000 硬件定义 (安全追加模式)
-cat >> target/linux/mediatek/image/filogic.mk <<'EOF'
+test -f "$custom_dts"
+test -f "$image_makefile"
+cp "$custom_dts" target/linux/mediatek/dts/
+
+# Keep the device definition in this repository so source updates cannot
+# silently replace it. A duplicate usually means the upstream target changed.
+if grep -q '^define Device/ikuai_q3000$' "$image_makefile"; then
+	echo "ikuai_q3000 is already defined in $image_makefile" >&2
+	exit 1
+fi
+
+cat >> "$image_makefile" <<'EOF'
 
 define Device/ikuai_q3000
   DEVICE_VENDOR := iKuai

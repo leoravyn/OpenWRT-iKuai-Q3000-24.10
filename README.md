@@ -1,39 +1,62 @@
-**English** | [中文](https://p3terx.com/archives/build-openwrt-with-github-actions.html)
+# OpenWRT-iKuai-Q3000-24.10
 
-# Actions-OpenWrt
+GitHub Actions build configuration for the iKuai IK-Q3000, based on the
+ImmortalWrt `openwrt-24.10` branch.
 
-[![LICENSE](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square&label=LICENSE)](https://github.com/P3TERX/Actions-OpenWrt/blob/master/LICENSE)
-![GitHub Stars](https://img.shields.io/github/stars/P3TERX/Actions-OpenWrt.svg?style=flat-square&label=Stars&logo=github)
-![GitHub Forks](https://img.shields.io/github/forks/P3TERX/Actions-OpenWrt.svg?style=flat-square&label=Forks&logo=github)
+## What this repository does
 
-A template for building OpenWrt with GitHub Actions
+The repository does not contain the full OpenWrt source tree. The workflow
+clones ImmortalWrt, installs feeds, applies the Q3000 device tree and image
+definition, and builds the firmware.
 
-## Usage
+The Q3000-specific files are:
 
-- Click the [Use this template](https://github.com/P3TERX/Actions-OpenWrt/generate) button to create a new repository.
-- Generate `.config` files using [Lean's OpenWrt](https://github.com/coolsnowwolf/lede) source code. ( You can change it through environment variables in the workflow file. )
-- Push `.config` file to the GitHub repository.
-- Select `Build OpenWrt` on the Actions page.
-- Click the `Run workflow` button.
-- When the build is complete, click the `Artifacts` button in the upper right corner of the Actions page to download the binaries.
+- `.config`: target and package selection;
+- `diy-part1.sh`: feed configuration;
+- `diy-part2.sh`: Q3000 DTS and image definition injection;
+- `mt7981b-ikuai-q3000.dts`: board description.
 
-## Tips
+Run **OpenWrt Builder** manually from the Actions tab. The workflow also
+publishes a new build when the tracked ImmortalWrt branch changes.
 
-- It may take a long time to create a `.config` file and build the OpenWrt firmware. Thus, before create repository to build your own firmware, you may check out if others have already built it which meet your needs by simply [search `Actions-Openwrt` in GitHub](https://github.com/search?q=Actions-openwrt).
-- Add some meta info of your built firmware (such as firmware architecture and installed packages) to your repository introduction, this will save others' time.
+## Firmware files
 
-## Credits
+- `*-initramfs-kernel.bin`: intended for RAM boot or development workflows. It
+  does not replace the installed firmware by itself.
+- `*-squashfs-factory.bin`: first installation from a compatible factory or
+  recovery interface.
+- `*-squashfs-sysupgrade.bin`: upgrade image for an already compatible
+  OpenWrt installation.
 
-- [Microsoft Azure](https://azure.microsoft.com)
-- [GitHub Actions](https://github.com/features/actions)
-- [OpenWrt](https://github.com/openwrt/openwrt)
-- [coolsnowwolf/lede](https://github.com/coolsnowwolf/lede)
-- [Mikubill/transfer](https://github.com/Mikubill/transfer)
-- [softprops/action-gh-release](https://github.com/softprops/action-gh-release)
-- [Mattraks/delete-workflow-runs](https://github.com/Mattraks/delete-workflow-runs)
-- [dev-drprasad/delete-older-releases](https://github.com/dev-drprasad/delete-older-releases)
-- [peter-evans/repository-dispatch](https://github.com/peter-evans/repository-dispatch)
+Always verify the device name, file checksum, image size, and upgrade method
+before flashing. Do not use `factory.bin` or `sysupgrade.bin` interchangeably.
+Keep a backup of the original firmware, bootloader, factory calibration data,
+and partition information. A failed flash may require a 3.3 V TTL serial
+connection or an external programmer to recover the router.
 
-## License
+## Hardware assumptions
 
-[MIT](https://github.com/P3TERX/Actions-OpenWrt/blob/main/LICENSE) © [**P3TERX**](https://p3terx.com)
+The device definition assumes an iKuai Q3000 with MediaTek MT7981, 512 MiB
+RAM, SPI-NAND storage, MT7531 switch, and the GPIO/port layout described in
+the DTS. Different hardware revisions may require a different device tree.
+Check the generated manifest and the device's partition layout before making
+any permanent change.
+
+## Package selection
+
+The default image includes SQM, Argon, ttyd, and UPnP LuCI packages. Package
+availability is validated by `make defconfig`; the final manifest in each
+release is authoritative.
+
+## Source and maintenance
+
+The build source is:
+
+```text
+https://github.com/immortalwrt/immortalwrt
+branch: openwrt-24.10
+```
+
+This repository is a device build configuration, not an official ImmortalWrt
+distribution. Review upstream changes and run a build before using a new
+release on production hardware.
