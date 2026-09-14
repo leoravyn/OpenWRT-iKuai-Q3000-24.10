@@ -26,6 +26,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout
@@ -124,28 +126,40 @@ jobs:
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: q3000-firmware
         path: ${{ env.FIRMWARE }}
 
-    - name: Generate release tag
+  publish:
+    needs: build
+    if: ${{ needs.build.result == 'success' && !cancelled() }}
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+    - name: Download firmware artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: q3000-firmware
+        path: firmware
+
+    - name: Generate release metadata
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
         set -euo pipefail
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> "$GITHUB_OUTPUT"
         printf '%s\n' 'Q3000 firmware built from ImmortalWrt openwrt-24.10.' > release.txt
         printf '%s\n' 'Review the included manifest and sha256sums before flashing.' >> release.txt
-        echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@master
-      if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*
+        files: firmware/*
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
@@ -153,9 +167,8 @@ jobs:
         retain_days: 0
         keep_minimum_runs: 2
 
-    - name: Remove old Releases
+    - name: Remove old releases
       uses: dev-drprasad/delete-older-releases@master
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
         keep_latest: 3
         delete_tags: true
